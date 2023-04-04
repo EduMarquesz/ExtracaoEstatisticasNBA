@@ -1,5 +1,4 @@
 import requests
-import json
 import pandas as pd
 
 
@@ -37,58 +36,58 @@ def get_json_result():
         ('total', 'perGame'),
     )
 
-    resposta = requests.get('https://pt.global.nba.com/stats2/league/playerstats.json', headers=headers, params=params)
+    response = requests.get('https://pt.global.nba.com/stats2/league/playerstats.json', headers=headers, params=params)
+    return response.json()
 
-    dados = json.loads(resposta.text)
-    return dados
 
 def get_info_player(player):
-    info_jogador =player['playerProfile']  
-    nome = info_jogador['code']
-    pais = info_jogador['country']
-    altura = info_jogador['height']
-    return nome,pais,altura
+    player_info = player['playerProfile']  
+    name = player_info['code']
+    country = player_info['country']
+    height = player_info['height']
+    return name, country, height
+
 
 def get_info_team(player):
-    info_time = player['teamProfile']
-    nome_time = info_time['name']
-    cidade_time = info_time['city']
-    return nome_time,cidade_time
+    team_info = player['teamProfile']
+    team_name = team_info['name']
+    team_city = team_info['city']
+    return team_name, team_city
+
 
 def main():
-    dados = get_json_result()
+    datas = get_json_result()
 
-    jogadores = dados['payload']['players']
+    players = datas['payload']['players']
 
+    list_players = []
 
-    lista_jogadores = []
+    for player in players:
 
-    for jogador in jogadores:
+        new_player = {}
+        name, country, height = get_info_player(player)
 
-        novo_jogador = {}
-        nome,pais,altura = get_info_player(jogador)
+        new_player['name'] = name
+        new_player['country'] = country
+        new_player['height'] = height
 
-        novo_jogador['Nome'] = nome
-        novo_jogador['Pais'] = pais
-        novo_jogador['Altura'] = altura
+        team_name, team_city = get_info_team(player)
 
-        nome_time,cidade_time = get_info_team(jogador)
+        new_player['team_name'] = team_name
+        new_player['team_city'] = team_city
 
-        novo_jogador['NomeTime'] = nome_time
-        novo_jogador['CidadeTime'] = cidade_time
-
-        lista_jogadores.append(novo_jogador)    
-    return lista_jogadores
+        list_players.append(new_player)    
+    return list_players
     
 if __name__ == '__main__':
-    lista_jogadores = main()
-    tabela = pd.DataFrame(lista_jogadores)
-    tabela['Altura'] = tabela['Altura'].astype('float')
+    list_players = main()
+    df = pd.DataFrame(list_players)
+    df['height'] = df['height'].str.replace(',', '.').str.replace(' ', '')
+    df['height'] = df['height'].astype('float')
 
     #Top 3 jogadores mais baixos
-    menores_jogadores = tabela[tabela['Altura'] < 1.90].sort_values('Altura').head(3)
+    minor_players = df[df['height'] < 1.90].sort_values('height').head(3)
 
 
     #Contagem das cidades dos times
-    times_cidades = tabela['CidadeTime'].value_counts()
-
+    teams_cities = df['team_city'].value_counts()
